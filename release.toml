@@ -1,0 +1,20 @@
+# Release process
+#
+# Versions are bumped in both Cargo.toml and Chart.yaml simultaneously through cargo-release
+#
+# cargo release patch --execute
+
+# Reference
+# https://github.com/crate-ci/cargo-release/blob/master/docs/reference.md
+
+pre-release-replacements = [
+  {file="charts/doc-controller/Chart.yaml", search="appVersion: .*", replace="appVersion: {{version}}"},
+]
+pre-release-hook = ["just", "generate"]
+pre-release-commit-message = "release {{version}}"
+push = false
+tag = true
+tag-name = "{{version}}"
+sign-tag = true
+sign-commit = true
+enable-all-features = true

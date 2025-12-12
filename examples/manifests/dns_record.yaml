@@ -1,0 +1,12 @@
+apiVersion: cloudflare.com/v1alpha1
+kind: DNSRecord
+metadata:
+  name: example-dns-record
+  namespace: default
+spec:
+  zone_id: "a71847d3fea0288474fb150b0fa58c3b"
+  name: "1234test.upty.dev"
+  record_type: "A"
+  content: "192.168.1.100"
+  ttl: 300
+  proxied: false

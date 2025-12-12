@@ -1,0 +1,50 @@
+use std::sync::Arc;
+// re-export the types, I feel like it's fine
+pub use cloudflare::endpoints::dns::dns::{CreateDnsRecordParams, DnsContent};
+
+use cloudflare::{
+    endpoints::dns::dns,
+    framework::{
+        Environment, auth,
+        client::{ClientConfig, async_api},
+    },
+};
+
+pub struct CloudflareClient {
+    client: Arc<async_api::Client>,
+}
+
+use anyhow::Result;
+impl CloudflareClient {
+    pub fn new(api_key: String) -> Result<Self> {
+        let credentials = auth::Credentials::UserAuthToken { token: api_key };
+        let api_client =
+            async_api::Client::new(credentials, ClientConfig::default(), Environment::Production)?;
+
+        Ok(Self {
+            client: Arc::new(api_client),
+        })
+    }
+    pub async fn create_dns_record(
+        &self,
+        zone_id: &str,
+        dns_params: CreateDnsRecordParams<'_>, // we need the lifetime, because we have the
+                                               // reference in the params, so we need to make sure
+                                               // that it outlives the params itself
+    ) -> Result<String> {
+        let endpoint = dns::CreateDnsRecord {
+            zone_identifier: zone_id,
+            params: dns_params,
+        };
+        let response = self.client.request(&endpoint).await?;
+        Ok(response.result.id)
+    }
+}
+
+impl Clone for CloudflareClient {
+    fn clone(&self) -> Self {
+        Self {
+            client: Arc::clone(&self.client),
+        }
+    }
+}
