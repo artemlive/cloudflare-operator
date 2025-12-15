@@ -46,6 +46,9 @@ thiserror = "2.0.17"
 anyhow = "1.0.100"
 prometheus-client = "0.24.0"
 
+[patch.crates-io]
+cloudflare = { git = "ssh://git@github.com/anasinnyk/cloudflare-rs.git" }
+
 [dev-dependencies]
 assert-json-diff = "2.0.2"
 http = "1"

@@ -1,6 +1,10 @@
 use std::sync::Arc;
 // re-export the types, I feel like it's fine
-pub use cloudflare::endpoints::dns::dns::{CreateDnsRecordParams, DnsContent};
+pub use cloudflare::endpoints::{
+    account::{Account, GetAccount},
+    dns::dns::{CreateDnsRecordParams, DnsContent},
+    zones::zone::{Zone, ZoneDetails},
+};
 
 use cloudflare::{
     endpoints::dns::dns,
@@ -39,6 +43,14 @@ impl CloudflareClient {
         };
         let response = self.client.request(&endpoint).await?;
         Ok(response.result.id)
+    }
+
+    pub async fn get_zone(&self, identifier: &str) -> Result<Zone> {
+        Ok(self.client.request(&ZoneDetails { identifier }).await?.result)
+    }
+
+    pub async fn get_account(&self, identifier: &str) -> Result<Account> {
+        Ok(self.client.request(&GetAccount { identifier }).await?.result)
     }
 }
 
