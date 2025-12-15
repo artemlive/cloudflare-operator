@@ -9,7 +9,7 @@ use kube::{
     client::Client,
     runtime::events::{Recorder, Reporter},
 };
-use tokio::{sync::RwLock, time::Duration};
+use tokio::sync::RwLock;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("SerializationError: {0}")]
@@ -82,6 +82,7 @@ impl State {
             metrics: Arc::default(),
         }
     }
+
     /// Metrics getter
     pub fn metrics(&self) -> String {
         let mut buffer = String::new();

@@ -1,27 +1,28 @@
-use crate::cf_client::{self, CloudflareClient, CreateDnsRecordParams, DnsContent};
-use crate::dns_record::{self, DNSRecord, DNSRecordSpec, DNSRecordStatus};
-use crate::{Context, Diagnostics, Error, Metrics, Result, State, telemetry};
+use crate::{
+    Context, Error, Result, State,
+    cf_client::{self, CreateDnsRecordParams, DnsContent},
+    dns_record::{DNSRecord, DNSRecordStatus},
+    telemetry,
+};
 use chrono::Utc;
-use cloudflare;
 use futures::StreamExt;
 use kube::{
-    CustomResource, Resource,
+    Resource,
     api::{Api, ListParams, Patch, PatchParams, ResourceExt},
     client::Client,
     runtime::{
         controller::{Action, Controller},
-        events::{Event, EventType, Recorder, Reporter},
+        events::{Event, EventType},
         finalizer::{Event as Finalizer, finalizer},
         watcher::Config,
     },
 };
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::any::Any;
-use std::net::{Ipv4Addr, Ipv6Addr};
-use std::sync::Arc;
-use tokio::{sync::RwLock, time::Duration};
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    sync::Arc,
+};
+use tokio::time::Duration;
 use tracing::*;
 pub static DOCUMENT_FINALIZER: &str = "dnsrecord.cloudflare.com";
 
@@ -57,7 +58,7 @@ impl DNSRecord {
     // Reconcile (for non-finalizer related changes)
     async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
         let client = ctx.client.clone();
-        let oref = self.object_ref(&());
+        let _oref = self.object_ref(&());
         let ns = self.namespace().unwrap(); // we unwrap this, because it's probably impossible to
         // have no ns on the namespaced object
         let name = self.name_any();
@@ -67,7 +68,7 @@ impl DNSRecord {
             return Err(Error::IllegalDocument); // error names show up in metrics
         }
 
-        let dns_rec: Api<DNSRecord> = Api::namespaced(ctx.client.clone(), &ns);
+        let _dns_rec: Api<DNSRecord> = Api::namespaced(ctx.client.clone(), &ns);
 
         let content = match self.spec.record_type.as_str() {
             "A" => DnsContent::A {

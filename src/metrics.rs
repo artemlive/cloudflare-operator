@@ -1,5 +1,4 @@
-use crate::Error;
-use crate::dns_record::DNSRecord;
+use crate::{Error, dns_record::DNSRecord};
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{

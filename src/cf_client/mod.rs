@@ -25,6 +25,7 @@ impl CloudflareClient {
             client: Arc::new(api_client),
         })
     }
+
     pub async fn create_dns_record(
         &self,
         zone_id: &str,
