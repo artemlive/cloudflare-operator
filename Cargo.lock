@@ -470,6 +470,7 @@ dependencies = [
  "hyper",
  "k8s-openapi",
  "kube",
+ "openapiv3",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
