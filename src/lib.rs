@@ -103,7 +103,7 @@ impl State {
             recorder: self.diagnostics.read().await.recorder(client),
             metrics: self.metrics.clone(),
             diagnostics: self.diagnostics.clone(),
-            cf_client: cf_client,
+            cf_client,
         })
     }
 }
@@ -125,6 +125,7 @@ pub struct Context {
 pub async fn run(state: State) {
     tokio::select! {
         _ = dns_record::run(state.clone()) => {},
+        // _ = zone::run(state.clone()) = {},
         // in future we could run other workers here future: _ = worker::run(state.clone()) => {},
     }
 }
@@ -136,6 +137,7 @@ mod metrics;
 pub use metrics::Metrics;
 pub mod cf_client;
 pub mod dns_record;
+pub mod zone;
 
 //TODO: reanimate tests
 //#[cfg(test)]

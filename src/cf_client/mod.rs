@@ -3,7 +3,7 @@ use std::sync::Arc;
 pub use cloudflare::endpoints::{
     account::{Account, GetAccount},
     dns::dns::{CreateDnsRecordParams, DnsContent},
-    zones::zone::{Zone, ZoneDetails},
+    zones::zone::{CreateZone, CreateZoneParams, Zone, ZoneDetails},
 };
 
 use cloudflare::{
@@ -43,6 +43,10 @@ impl CloudflareClient {
         };
         let response = self.client.request(&endpoint).await?;
         Ok(response.result.id)
+    }
+
+    pub async fn create_zone(&self, params: CreateZoneParams<'_>) -> Result<()> {
+        Ok(self.client.request(&CreateZone { params }).await?.result)
     }
 
     pub async fn get_zone(&self, identifier: &str) -> Result<Zone> {
