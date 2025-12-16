@@ -127,8 +127,6 @@ pub async fn run(state: State) {
         _ = dns_record::run(state.clone()) => {}
         _ = zone::run(state.clone()) => {}
         _ = account::run(state.clone()) => {}
-        // _z = zone::run(state.clone()) = {},
-        // _acc = account:run(state.clone()) = {},
         // in future we could run other workers here future: _ = worker::run(state.clone()) => {},
     }
 }
