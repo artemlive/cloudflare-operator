@@ -1,4 +1,4 @@
-use crate::{Error, account::Account, dns_record::DNSRecord, zone::Zone};
+use crate::Error;
 use kube::ResourceExt;
 use opentelemetry::trace::TraceId;
 use prometheus_client::{
@@ -80,25 +80,10 @@ impl ReconcileMetrics {
         self
     }
 
-    pub fn set_failure_dns(&self, doc: &DNSRecord, e: &Error) {
-        self.failures
-            .get_or_create(&ErrorLabels {
-                instance: doc.name_any(),
-                error: e.metric_label(),
-            })
-            .inc();
-    }
-
-    pub fn set_failure_account(&self, doc: &Account, e: &Error) {
-        self.failures
-            .get_or_create(&ErrorLabels {
-                instance: doc.name_any(),
-                error: e.metric_label(),
-            })
-            .inc();
-    }
-
-    pub fn set_failure_zone(&self, doc: &Zone, e: &Error) {
+    pub fn set_failure<K>(&self, doc: &K, e: &Error)
+    where
+        K: ResourceExt,
+    {
         self.failures
             .get_or_create(&ErrorLabels {
                 instance: doc.name_any(),

@@ -46,7 +46,7 @@ async fn reconcile(doc: Arc<Account>, ctx: Arc<Context>) -> Result<Action> {
 
 fn error_policy(doc: Arc<Account>, error: &Error, ctx: Arc<Context>) -> Action {
     warn!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure_account(&doc, error);
+    ctx.metrics.reconcile.set_failure(doc.as_ref(), error);
     Action::requeue(Duration::from_secs(5 * 60))
 }
 
