@@ -425,7 +425,7 @@ dependencies = [
 [[package]]
 name = "cloudflare"
 version = "0.14.1"
-source = "git+ssh://git@github.com/anasinnyk/cloudflare-rs.git#c258861fbc02c67669f7fde2b5c0b3de66cb2d16"
+source = "git+ssh://git@github.com/anasinnyk/cloudflare-rs.git#28653cad52628e243a50582078c14c5d12075c8d"
 dependencies = [
  "chrono",
  "http 1.4.0",
@@ -1427,6 +1427,7 @@ checksum = "06d9e5e61dd037cdc51da0d7e2b2be10f497478ea7e120d85dad632adb99882b"
 dependencies = [
  "base64",
  "chrono",
+ "schemars 1.1.0",
  "serde",
  "serde_json",
 ]

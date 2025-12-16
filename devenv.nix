@@ -20,6 +20,10 @@
     channel = "nightly";
   };
 
+  scripts = {
+    crdgen.exec = "cargo run --bin crdgen";
+  };
+
   git-hooks.hooks = {
     rustfmt.enable = true;
     clippy.enable = true;

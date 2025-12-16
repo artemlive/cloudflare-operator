@@ -71,6 +71,8 @@ impl Zone {
             zone_type: None,
         };
         // always overwrite status object with what we saw
+        let res = ctx.cf_client.create_zone(zone_params).await;
+
         let _o = docs
             .patch_status(
                 &name,
@@ -79,7 +81,8 @@ impl Zone {
                     "apiVersion": "cloudflare.com/v1alpha1",
                     "kind": "Zone",
                     "status": ZoneStatus {
-                        ready: ctx.cf_client.create_zone(zone_params).await.is_ok(),
+                        ready: res.is_ok(),
+                        zone_id: res?,
                     }
                 })),
             )

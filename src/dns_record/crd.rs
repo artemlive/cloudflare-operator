@@ -1,3 +1,4 @@
+use k8s_openapi::api::core::v1::LocalObjectReference;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,7 @@ use serde::{Deserialize, Serialize};
 )]
 #[kube(status = "DNSRecordStatus", shortname = "dns")]
 pub struct DNSRecordSpec {
-    pub zone_id: String,
+    pub zone_ref: LocalObjectReference,
     pub name: String,
     pub record_type: String,
     pub content: String,

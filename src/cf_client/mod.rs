@@ -45,8 +45,8 @@ impl CloudflareClient {
         Ok(response.result.id)
     }
 
-    pub async fn create_zone(&self, params: CreateZoneParams<'_>) -> Result<()> {
-        Ok(self.client.request(&CreateZone { params }).await?.result)
+    pub async fn create_zone(&self, params: CreateZoneParams<'_>) -> Result<String> {
+        Ok(self.client.request(&CreateZone { params }).await?.result.id)
     }
 
     pub async fn get_zone(&self, identifier: &str) -> Result<Zone> {
