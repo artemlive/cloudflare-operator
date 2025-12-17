@@ -73,6 +73,7 @@ impl CloudflareClient {
         zone_id: &str,
         page_rule_params: CreatePageRuleParams,
     ) -> Result<String> {
+        let page_rule_endpoint = CreatePageRule 
     }
 }
 
