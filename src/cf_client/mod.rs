@@ -3,8 +3,7 @@ use std::sync::Arc;
 pub use cloudflare::endpoints::{
     account::{Account, GetAccount},
     dns::dns::{CreateDnsRecordParams, DnsContent},
-    endpoints::dns::dns::{CreateDnsRecordParams, DnsContent},
-    endpoints::page_rule::{CreatePageRule, CreatePageRuleParams},
+    page_rule::{CreatePageRule, CreatePageRuleParams},
     users::TokenVerification,
     zones::zone::{CreateZone, CreateZoneParams, Zone, ZoneDetails},
 };
@@ -73,7 +72,6 @@ impl CloudflareClient {
         zone_id: &str,
         page_rule_params: CreatePageRuleParams,
     ) -> Result<String> {
-        let page_rule_endpoint = CreatePageRule 
     }
 }
 
