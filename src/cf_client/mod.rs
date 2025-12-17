@@ -3,6 +3,8 @@ use std::sync::Arc;
 pub use cloudflare::endpoints::{
     account::{Account, GetAccount},
     dns::dns::{CreateDnsRecordParams, DnsContent},
+    endpoints::dns::dns::{CreateDnsRecordParams, DnsContent},
+    endpoints::page_rule::{CreatePageRule, CreatePageRuleParams},
     users::TokenVerification,
     zones::zone::{CreateZone, CreateZoneParams, Zone, ZoneDetails},
 };
@@ -64,6 +66,13 @@ impl CloudflareClient {
 
     pub async fn token_verify(&self) -> Result<String> {
         Ok(self.client.request(&TokenVerification {}).await?.result.id)
+    }
+
+    pub async fn create_page_rule(
+        &self,
+        zone_id: &str,
+        page_rule_params: CreatePageRuleParams,
+    ) -> Result<String> {
     }
 }
 

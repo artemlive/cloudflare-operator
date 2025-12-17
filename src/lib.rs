@@ -141,8 +141,8 @@ pub mod account;
 pub mod cf_client;
 pub mod cloudflare;
 pub mod dns_record;
+pub mod page_rule;
 pub mod zone;
-
 //TODO: reanimate tests
 //#[cfg(test)]
 //pub mod fixtures;
