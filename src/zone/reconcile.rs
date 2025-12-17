@@ -1,13 +1,14 @@
 use crate::{
     Context, Error, Result, State,
-    cf_client::{self, CreateZoneParams},
+    account::Account,
+    cf_client::CreateZoneParams,
     telemetry,
     zone::{Zone, ZoneStatus},
 };
 use chrono::Utc;
 use futures::StreamExt;
 use kube::{
-    Resource,
+    Error as KubeError, Resource,
     api::{Api, ListParams, Patch, PatchParams, ResourceExt},
     client::Client,
     runtime::{
@@ -58,36 +59,68 @@ impl Zone {
         let ns = self.namespace().unwrap(); // we unwrap this, because it's probably impossible to
         // have no ns on the namespaced object
         let name = self.name_any();
-        let docs: Api<Zone> = Api::namespaced(client, &ns);
+        let docs: Api<Zone> = Api::namespaced(client.clone(), &ns);
+        let acc_api: Api<Account> = Api::namespaced(client, &ns);
+        if let Some(a_ref) = &self.spec.account_ref {
+            match acc_api.get(&a_ref.name).await {
+                Ok(acc) => {
+                    if let Some(a_status) = acc.status.as_ref() {
+                        if let Some(account_id) = &a_status.id {
+                            let create_zone = CreateZoneParams {
+                                name: &name,
+                                account: account_id,
+                                jump_start: None,
+                                zone_type: None,
+                            };
+
+                            match ctx
+                                .provider
+                                .get_client(self, &ns)
+                                .await
+                                .unwrap() // @FIXME: We need poscess it
+                                .create_zone(create_zone)
+                                .await
+                            {
+                                Ok(zone_id) => {
+                                    docs.patch_status(
+                                        &name,
+                                        &PatchParams::apply("cntrlr").force(),
+                                        &Patch::Apply(json!({
+                                            "apiVersion": "cloudflare.com/v1alpha1",
+                                            "kind": "Zone",
+                                            "status": ZoneStatus {
+                                                ready: true,
+                                                id: Some(zone_id),
+                                            }
+                                        })),
+                                    )
+                                    .await
+                                    .map_err(Error::KubeError)?;
+
+                                    return Ok(Action::requeue(Duration::from_secs(5 * 60)));
+                                }
+                                Err(e) => {
+                                    eprintln!("Error happend: {}", e);
+                                    return Ok(Action::requeue(Duration::from_secs(60)));
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(KubeError::Api(e)) if e.code == 404 => {
+                    eprintln!("Account '{}' not found in '{}' namespace", &a_ref.name, &ns);
+                    return Ok(Action::requeue(Duration::from_secs(30)));
+                }
+                Err(e) => {
+                    return Err(Error::KubeError(e));
+                }
+            }
+        }
+
 
         if name == "illegal" {
             return Err(Error::IllegalDocument); // error names show up in metrics
         }
-
-        let zone_params = CreateZoneParams {
-            name: &name,
-            account: &self.spec.account,
-            jump_start: None,
-            zone_type: None,
-        };
-        // always overwrite status object with what we saw
-        let res = ctx.cf_client.create_zone(zone_params).await;
-
-        let _o = docs
-            .patch_status(
-                &name,
-                &PatchParams::apply("cntrlr").force(),
-                &Patch::Apply(json!({
-                    "apiVersion": "cloudflare.com/v1alpha1",
-                    "kind": "Zone",
-                    "status": ZoneStatus {
-                        ready: res.is_ok(),
-                        zone_id: res?,
-                    }
-                })),
-            )
-            .await
-            .map_err(Error::KubeError)?;
 
         // If no events were received, check back every 5 minutes
         Ok(Action::requeue(Duration::from_secs(5 * 60)))

@@ -1,8 +1,9 @@
-use crate::cloudflare::{AccountScoped, HasSecretRef};
 use k8s_openapi::api::core::v1::{LocalObjectReference, SecretKeySelector};
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::cloudflare::CloudflareResource;
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[cfg_attr(test, derive(Default))]
@@ -13,20 +14,18 @@ pub struct ZoneSpec {
     pub secret_ref: Option<SecretKeySelector>,
 }
 
-impl HasSecretRef for ZoneSpec {
-    fn secret_ref(&self) -> &Option<SecretKeySelector> {
-        &self.secret_ref
+impl CloudflareResource for Zone {
+    fn secret_ref(&self) -> Option<&SecretKeySelector> {
+        self.spec.secret_ref.as_ref()
     }
-}
 
-impl AccountScoped for ZoneSpec {
-    fn account_ref(&self) -> &Option<LocalObjectReference> {
-        &self.account_ref
+    fn account_ref(&self) -> Option<&LocalObjectReference> {
+        self.spec.account_ref.as_ref()
     }
 }
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 pub struct ZoneStatus {
     pub ready: bool,
-    pub zone_id: String,
+    pub id: Option<String>,
 }

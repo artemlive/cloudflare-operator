@@ -7,7 +7,7 @@ pub use cloudflare::endpoints::{
 };
 
 use cloudflare::{
-    endpoints::dns::dns,
+    endpoints::{account::ListAccounts, dns::dns},
     framework::{
         Environment, auth,
         client::{ClientConfig, async_api},
@@ -20,8 +20,8 @@ pub struct CloudflareClient {
 
 use anyhow::Result;
 impl CloudflareClient {
-    pub fn new(api_key: String) -> Result<Self> {
-        let credentials = auth::Credentials::UserAuthToken { token: api_key };
+    pub fn new(token: String) -> Result<Self> {
+        let credentials = auth::Credentials::UserAuthToken { token };
         let api_client =
             async_api::Client::new(credentials, ClientConfig::default(), Environment::Production)?;
 
@@ -55,6 +55,10 @@ impl CloudflareClient {
 
     pub async fn get_account(&self, identifier: &str) -> Result<Account> {
         Ok(self.client.request(&GetAccount { identifier }).await?.result)
+    }
+
+    pub async fn list_account(&self) -> Result<Vec<Account>> {
+        Ok(self.client.request(&ListAccounts { params: None }).await?.result)
     }
 }
 

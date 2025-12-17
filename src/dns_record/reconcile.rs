@@ -1,6 +1,6 @@
 use crate::{
     Context, Error, Result, State,
-    cf_client::{self, CreateDnsRecordParams, DnsContent},
+    cf_client::{CreateDnsRecordParams, DnsContent},
     dns_record::{DNSRecord, DNSRecordStatus},
     telemetry,
     zone::Zone,
@@ -64,7 +64,7 @@ impl DNSRecord {
         // have no ns on the namespaced object
         let name = self.name_any();
         let docs: Api<DNSRecord> = Api::namespaced(client.clone(), &ns);
-        let cf_client = ctx.provider.get_client(&docs, &ns)
+        let cf_client = ctx.provider.get_client(self, &ns).await.unwrap();
 
         if name == "illegal" {
             return Err(Error::IllegalDocument); // error names show up in metrics
@@ -101,25 +101,24 @@ impl DNSRecord {
         let zone_api: Api<Zone> = Api::namespaced(client.clone(), &ns);
         match zone_api.get(&self.spec.zone_ref.name).await {
             Ok(zone) => {
-                if let Some(status) = zone.status {
-                    let res = ctx
-                        .cf_client
-                        .create_dns_record(&status.zone_id, dns_record_params)
-                        .await?;
-                    // always overwrite status object with what we saw
-                    let new_status = Patch::Apply(json!({
-                        "apiVersion": "cloudflare.com/v1alpha1",
-                        "kind": "DNSRecord",
-                        "status": DNSRecordStatus {
-                            ready: true,
-                            record_id: Some(res),
-                        }
-                    }));
-                    let ps = PatchParams::apply("cntrlr").force();
-                    let _o = docs
-                        .patch_status(&name, &ps, &new_status)
-                        .await
-                        .map_err(Error::KubeError)?;
+                if let Some(z_status) = zone.status {
+                    if let Some(zone_id) = &z_status.id {
+                        let res = cf_client.create_dns_record(&zone_id, dns_record_params).await?;
+                        // always overwrite status object with what we saw
+                        let new_status = Patch::Apply(json!({
+                            "apiVersion": "cloudflare.com/v1alpha1",
+                            "kind": "DNSRecord",
+                            "status": DNSRecordStatus {
+                                ready: true,
+                                record_id: Some(res),
+                            }
+                        }));
+                        let ps = PatchParams::apply("cntrlr").force();
+                        let _o = docs
+                            .patch_status(&name, &ps, &new_status)
+                            .await
+                            .map_err(Error::KubeError)?;
+                    }
                 }
             }
             Err(KubeError::Api(e)) if e.code == 404 => {

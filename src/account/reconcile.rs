@@ -1,7 +1,7 @@
 use crate::{
     Context, Error, Result, State,
     account::{Account, AccountStatus},
-    cf_client, telemetry,
+    telemetry,
 };
 use chrono::Utc;
 use futures::StreamExt;
@@ -63,24 +63,38 @@ impl Account {
             return Err(Error::IllegalDocument); // error names show up in metrics
         }
 
-        // always overwrite status object with what we saw
-        let _o = docs
-            .patch_status(
-                &name,
-                &PatchParams::apply("cntrlr").force(),
-                &Patch::Apply(json!({
-                    "apiVersion": "cloudflare.com/v1alpha1",
-                    "kind": "Account",
-                    "status": AccountStatus {
-                        ready: ctx.cf_client.get_account(&self.spec.id).await.is_ok(),
-                    }
-                })),
-            )
-            .await
-            .map_err(Error::KubeError)?;
+        let cf_client = ctx.provider.get_client(self, &ns).await.unwrap();
+        match cf_client.list_account().await {
+            Ok(accounts) => {
+                dbg!(&accounts);
+                for account in accounts {
+                    if account.name == name {
+                        docs.patch_status(
+                            &name,
+                            &PatchParams::apply("cntrlr").force(),
+                            &Patch::Apply(json!({
+                                "apiVersion": "cloudflare.com/v1alpha1",
+                                "kind": "Account",
+                                "status": AccountStatus {
+                                    ready: true,
+                                    id: Some(account.id),
+                                }
+                            })),
+                        )
+                        .await
+                        .map_err(Error::KubeError)?;
 
-        // If no events were received, check back every 5 minutes
-        Ok(Action::requeue(Duration::from_secs(5 * 60)))
+                        return Ok(Action::requeue(Duration::from_secs(5 * 60)));
+                    }
+                }
+                eprintln!("Account {} not found with this token", name);
+                return Ok(Action::requeue(Duration::from_secs(60)));
+            }
+            Err(e) => {
+                eprintln!("Error happend: {}", e);
+                return Ok(Action::requeue(Duration::from_secs(60)));
+            }
+        }
     }
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)

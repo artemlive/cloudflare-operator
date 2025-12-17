@@ -45,6 +45,7 @@ opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"] }
 thiserror = "2.0.17"
 anyhow = "1.0.100"
 prometheus-client = "0.24.0"
+async-recursion = "1.1.1"
 
 [patch.crates-io]
 cloudflare = { git = "ssh://git@github.com/anasinnyk/cloudflare-rs.git" }
