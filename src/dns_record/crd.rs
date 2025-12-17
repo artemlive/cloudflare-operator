@@ -1,3 +1,4 @@
+use crate::cloudflare::ZoneScoped;
 use k8s_openapi::api::core::v1::LocalObjectReference;
 use kube::CustomResource;
 use schemars::JsonSchema;
@@ -21,6 +22,13 @@ pub struct DNSRecordSpec {
     pub priority: Option<u16>,
     pub proxied: Option<bool>,
 }
+
+impl ZoneScoped for DNSRecordSpec {
+    fn zone_ref(&self) -> &LocalObjectReference {
+        &self.zone_ref
+    }
+}
+
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 pub struct DNSRecordStatus {

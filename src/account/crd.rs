@@ -1,3 +1,5 @@
+use crate::cloudflare::HasSecretRef;
+use k8s_openapi::api::core::v1::SecretKeySelector;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -7,7 +9,13 @@ use serde::{Deserialize, Serialize};
 #[kube(kind = "Account", group = "cloudflare.com", version = "v1alpha1", namespaced)]
 #[kube(status = "AccountStatus", shortname = "acc")]
 pub struct AccountSpec {
-    pub id: String,
+    pub secret_ref: Option<SecretKeySelector>,
+}
+
+impl HasSecretRef for AccountSpec {
+    fn secret_ref(&self) -> &Option<SecretKeySelector> {
+        &self.secret_ref
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]

@@ -64,12 +64,11 @@ impl DNSRecord {
         // have no ns on the namespaced object
         let name = self.name_any();
         let docs: Api<DNSRecord> = Api::namespaced(client.clone(), &ns);
+        let cf_client = ctx.provider.get_client(&docs, &ns)
 
         if name == "illegal" {
             return Err(Error::IllegalDocument); // error names show up in metrics
         }
-
-        let _dns_rec: Api<DNSRecord> = Api::namespaced(client.clone(), &ns);
 
         let content = match self.spec.record_type.as_str() {
             "A" => DnsContent::A {
@@ -173,12 +172,9 @@ pub async fn run(state: State) {
 
     let api_key =
         std::env::var("CLOUDFLARE_API_TOKEN").expect("CLOUDFLARE_API_TOKEN environment variable must be set");
-    let cf_client = cf_client::CloudflareClient::new(api_key)
-        .expect("Couldn't create cloudflare client")
-        .into();
     Controller::new(docs, Config::default().any_semantic())
         .shutdown_on_signal()
-        .run(reconcile, error_policy, state.to_context(client, cf_client).await)
+        .run(reconcile, error_policy, state.to_context(client, api_key).await)
         .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))
         .await;

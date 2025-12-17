@@ -126,12 +126,9 @@ pub async fn run(state: State) {
 
     let api_key =
         std::env::var("CLOUDFLARE_API_TOKEN").expect("CLOUDFLARE_API_TOKEN environment variable must be set");
-    let cf_client = cf_client::CloudflareClient::new(api_key)
-        .expect("Couldn't create cloudflare client")
-        .into();
     Controller::new(docs, Config::default().any_semantic())
         .shutdown_on_signal()
-        .run(reconcile, error_policy, state.to_context(client, cf_client).await)
+        .run(reconcile, error_policy, state.to_context(client, api_key).await)
         .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))
         .await;
