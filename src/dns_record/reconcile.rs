@@ -1,13 +1,14 @@
 use crate::{
     Context, Error, Result, State,
-    cf_client::{self, CreateDnsRecordParams, DnsContent},
+    cf_client::{CreateDnsRecordParams, DnsContent},
     dns_record::{DNSRecord, DNSRecordStatus},
     telemetry,
+    zone::Zone,
 };
 use chrono::Utc;
 use futures::StreamExt;
 use kube::{
-    Resource,
+    Error as KubeError, Resource,
     api::{Api, ListParams, Patch, PatchParams, ResourceExt},
     client::Client,
     runtime::{
@@ -50,7 +51,7 @@ async fn reconcile(doc: Arc<DNSRecord>, ctx: Arc<Context>) -> Result<Action> {
 
 fn error_policy(doc: Arc<DNSRecord>, error: &Error, ctx: Arc<Context>) -> Action {
     warn!("reconcile failed: {:?}", error);
-    ctx.metrics.reconcile.set_failure(&doc, error);
+    ctx.metrics.reconcile.set_failure(doc.as_ref(), error);
     Action::requeue(Duration::from_secs(5 * 60))
 }
 
@@ -62,13 +63,12 @@ impl DNSRecord {
         let ns = self.namespace().unwrap(); // we unwrap this, because it's probably impossible to
         // have no ns on the namespaced object
         let name = self.name_any();
-        let docs: Api<DNSRecord> = Api::namespaced(client, &ns);
+        let docs: Api<DNSRecord> = Api::namespaced(client.clone(), &ns);
+        let cf_client = ctx.provider.get_client(self, &ns).await.unwrap();
 
         if name == "illegal" {
             return Err(Error::IllegalDocument); // error names show up in metrics
         }
-
-        let _dns_rec: Api<DNSRecord> = Api::namespaced(ctx.client.clone(), &ns);
 
         let content = match self.spec.record_type.as_str() {
             "A" => DnsContent::A {
@@ -95,26 +95,44 @@ impl DNSRecord {
             priority: self.spec.priority,
             proxied: self.spec.proxied,
             name: self.spec.name.as_str(),
-            content: content,
+            content,
         };
-        let res = ctx
-            .cf_client
-            .create_dns_record(self.spec.zone_id.as_str(), dns_record_params)
-            .await?;
-        // always overwrite status object with what we saw
-        let new_status = Patch::Apply(json!({
-            "apiVersion": "cloudflare.com/v1alpha1",
-            "kind": "DNSRecord",
-            "status": DNSRecordStatus {
-                ready: true,
-                record_id: Some(res),
+
+        let zone_api: Api<Zone> = Api::namespaced(client.clone(), &ns);
+        match zone_api.get(&self.spec.zone_ref.name).await {
+            Ok(zone) => {
+                if let Some(z_status) = zone.status {
+                    if let Some(zone_id) = &z_status.id {
+                        let res = cf_client.create_dns_record(&zone_id, dns_record_params).await?;
+                        // always overwrite status object with what we saw
+                        let new_status = Patch::Apply(json!({
+                            "apiVersion": "cloudflare.com/v1alpha1",
+                            "kind": "DNSRecord",
+                            "status": DNSRecordStatus {
+                                ready: true,
+                                record_id: Some(res),
+                            }
+                        }));
+                        let ps = PatchParams::apply("cntrlr").force();
+                        let _o = docs
+                            .patch_status(&name, &ps, &new_status)
+                            .await
+                            .map_err(Error::KubeError)?;
+                    }
+                }
             }
-        }));
-        let ps = PatchParams::apply("cntrlr").force();
-        let _o = docs
-            .patch_status(&name, &ps, &new_status)
-            .await
-            .map_err(Error::KubeError)?;
+            Err(KubeError::Api(e)) if e.code == 404 => {
+                eprintln!(
+                    "Zone '{}' not found in '{}' namespace",
+                    &self.spec.zone_ref.name, &ns
+                );
+                return Ok(Action::requeue(Duration::from_secs(30)));
+            }
+            Err(e) => {
+                return Err(Error::KubeError(e));
+            }
+        }
+
 
         // If no events were received, check back every 5 minutes
         Ok(Action::requeue(Duration::from_secs(5 * 60)))
@@ -153,12 +171,9 @@ pub async fn run(state: State) {
 
     let api_key =
         std::env::var("CLOUDFLARE_API_TOKEN").expect("CLOUDFLARE_API_TOKEN environment variable must be set");
-    let cf_client = cf_client::CloudflareClient::new(api_key)
-        .expect("Couldn't create cloudflare client")
-        .into();
     Controller::new(docs, Config::default().any_semantic())
         .shutdown_on_signal()
-        .run(reconcile, error_policy, state.to_context(client, cf_client).await)
+        .run(reconcile, error_policy, state.to_context(client, api_key).await)
         .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))
         .await;

@@ -1,6 +1,9 @@
+use k8s_openapi::api::core::v1::LocalObjectReference;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::cloudflare::CloudflareResource;
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[cfg_attr(test, derive(Default))]
@@ -12,7 +15,7 @@ use serde::{Deserialize, Serialize};
 )]
 #[kube(status = "DNSRecordStatus", shortname = "dns")]
 pub struct DNSRecordSpec {
-    pub zone_id: String,
+    pub zone_ref: LocalObjectReference,
     pub name: String,
     pub record_type: String,
     pub content: String,
@@ -20,6 +23,13 @@ pub struct DNSRecordSpec {
     pub priority: Option<u16>,
     pub proxied: Option<bool>,
 }
+
+impl CloudflareResource for DNSRecord {
+    fn zone_ref(&self) -> Option<&LocalObjectReference> {
+        Some(&self.spec.zone_ref)
+    }
+}
+
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 pub struct DNSRecordStatus {

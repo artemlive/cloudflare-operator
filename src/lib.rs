@@ -3,12 +3,13 @@ use std::sync::Arc;
 use serde::Serialize;
 use thiserror::Error;
 
-use cf_client::CloudflareClient;
 use chrono::{DateTime, Utc};
 use kube::{
     client::Client,
     runtime::events::{Recorder, Reporter},
 };
+
+use cloudflare::CloudflareClientProvider;
 use tokio::sync::RwLock;
 #[derive(Error, Debug)]
 pub enum Error {
@@ -97,13 +98,13 @@ impl State {
     }
 
     // Create a Controller Context that can update State
-    pub async fn to_context(&self, client: Client, cf_client: Arc<CloudflareClient>) -> Arc<Context> {
+    pub async fn to_context(&self, client: Client, token: String) -> Arc<Context> {
         Arc::new(Context {
             client: client.clone(),
-            recorder: self.diagnostics.read().await.recorder(client),
+            recorder: self.diagnostics.read().await.recorder(client.clone()),
             metrics: self.metrics.clone(),
             diagnostics: self.diagnostics.clone(),
-            cf_client: cf_client,
+            provider: CloudflareClientProvider::new(client, token),
         })
     }
 }
@@ -119,12 +120,14 @@ pub struct Context {
     pub diagnostics: Arc<RwLock<Diagnostics>>,
     /// Prometheus metrics
     pub metrics: Arc<Metrics>,
-    pub cf_client: Arc<CloudflareClient>,
+    pub provider: CloudflareClientProvider,
 }
 
 pub async fn run(state: State) {
     tokio::select! {
-        _ = dns_record::run(state.clone()) => {},
+        _ = dns_record::run(state.clone()) => {}
+        _ = zone::run(state.clone()) => {}
+        _ = account::run(state.clone()) => {}
         // in future we could run other workers here future: _ = worker::run(state.clone()) => {},
     }
 }
@@ -134,8 +137,11 @@ pub mod telemetry;
 /// Metrics
 mod metrics;
 pub use metrics::Metrics;
+pub mod account;
 pub mod cf_client;
+pub mod cloudflare;
 pub mod dns_record;
+pub mod zone;
 
 //TODO: reanimate tests
 //#[cfg(test)]
