@@ -20,7 +20,7 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::time::Duration;
 use tracing::*;
-pub static DOCUMENT_FINALIZER: &str = "zone.cloudflare.com";
+pub static DOCUMENT_FINALIZER: &str = "account.cloudflare.com";
 
 #[instrument(skip(ctx, doc), fields(trace_id))]
 async fn reconcile(doc: Arc<Account>, ctx: Arc<Context>) -> Result<Action> {
