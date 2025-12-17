@@ -1,9 +1,11 @@
 use crate::{
     Context, Error, Result, State,
     cf_client::{self},
+    page_rule::PageRule,
     telemetry,
 };
 use chrono::Utc;
+use cloudflare::endpoints::page_rule::{CreatePageRule, CreatePageRuleParams};
 use futures::StreamExt;
 use kube::{
     Resource,
@@ -27,7 +29,7 @@ use tracing::*;
 pub static DOCUMENT_FINALIZER: &str = "page_rule.cloudflare.com";
 
 #[instrument(skip(ctx, doc), fields(trace_id))]
-async fn reconcile(doc: Arc<DNSRecord>, ctx: Arc<Context>) -> Result<Action> {
+async fn reconcile(doc: Arc<PageRule>, ctx: Arc<Context>) -> Result<Action> {
     let trace_id = telemetry::get_trace_id();
     if trace_id != opentelemetry::trace::TraceId::INVALID {
         Span::current().record("trace_id", field::display(&trace_id));
@@ -35,7 +37,7 @@ async fn reconcile(doc: Arc<DNSRecord>, ctx: Arc<Context>) -> Result<Action> {
     let _timer = ctx.metrics.reconcile.count_and_measure(&trace_id);
     ctx.diagnostics.write().await.last_event = Utc::now();
     let ns = doc.namespace().unwrap(); // doc is namespace scoped
-    let docs: Api<DNSRecord> = Api::namespaced(ctx.client.clone(), &ns);
+    let docs: Api<PageRule> = Api::namespaced(ctx.client.clone(), &ns);
 
     info!("Reconciling DNSRecord \"{}\" in {}", doc.name_any(), ns);
     finalizer(&docs, DOCUMENT_FINALIZER, doc, |event| async {
@@ -48,7 +50,7 @@ async fn reconcile(doc: Arc<DNSRecord>, ctx: Arc<Context>) -> Result<Action> {
     .map_err(|e| Error::FinalizerError(Box::new(e)))
 }
 
-fn error_policy(doc: Arc<DNSRecord>, error: &Error, ctx: Arc<Context>) -> Action {
+fn error_policy(doc: Arc<PageRule>, error: &Error, ctx: Arc<Context>) -> Action {
     warn!("reconcile failed: {:?}", error);
     ctx.metrics.reconcile.set_failure(&doc, error);
     Action::requeue(Duration::from_secs(5 * 60))
@@ -62,41 +64,13 @@ impl PageRule {
         let ns = self.namespace().unwrap(); // we unwrap this, because it's probably impossible to
         // have no ns on the namespaced object
         let name = self.name_any();
-        let docs: Api<DNSRecord> = Api::namespaced(client, &ns);
+        let docs: Api<PageRule> = Api::namespaced(client, &ns);
 
         if name == "illegal" {
             return Err(Error::IllegalDocument); // error names show up in metrics
         }
 
-        let _dns_rec: Api<DNSRecord> = Api::namespaced(ctx.client.clone(), &ns);
-
-        let content = match self.spec.record_type.as_str() {
-            "A" => DnsContent::A {
-                content: self.spec.content.parse::<Ipv4Addr>()?,
-            },
-            "AAAA" => DnsContent::AAAA {
-                content: self.spec.content.parse::<Ipv6Addr>()?,
-            },
-            "CNAME" => DnsContent::CNAME {
-                content: self.spec.content.clone(),
-            },
-            "MX" => DnsContent::MX {
-                content: self.spec.content.clone(),
-                priority: self.spec.priority.unwrap_or(10),
-            },
-            "TXT" => DnsContent::TXT {
-                content: self.spec.content.clone(),
-            },
-            _ => return Err(Error::UnsupportedRecordType(self.spec.record_type.clone())),
-        };
-
-        let dns_record_params = CreateDnsRecordParams {
-            ttl: self.spec.ttl,
-            priority: self.spec.priority,
-            proxied: self.spec.proxied,
-            name: self.spec.name.as_str(),
-            content: content,
-        };
+        let page_rule = CreatePageRuleParams {};
         let res = ctx
             .cf_client
             .create_dns_record(self.spec.zone_id.as_str(), dns_record_params)

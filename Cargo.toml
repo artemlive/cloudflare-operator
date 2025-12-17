@@ -26,8 +26,7 @@ default = []
 telemetry = ["opentelemetry-otlp"]
 
 [dependencies]
-#cloudflare = "0.14.0"
-cloudflare = { git = "ssh://git@github.com/anasinnyk/cloudflare-rs.git", branch = "feat/page-rules" }
+cloudflare = { git = "ssh://git@github.com/anasinnyk/cloudflare-rs.git" }
 actix-web = "4.12.1"
 futures = "0.3.31"
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
