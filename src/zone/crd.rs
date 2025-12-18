@@ -9,6 +9,7 @@ use crate::cloudflare::CloudflareResource;
 #[cfg_attr(test, derive(Default))]
 #[kube(kind = "Zone", group = "cloudflare.com", version = "v1alpha1", namespaced)]
 #[kube(status = "ZoneStatus", shortname = "zone")]
+#[serde(rename_all = "camelCase")]
 pub struct ZoneSpec {
     pub account_ref: Option<LocalObjectReference>,
     pub secret_ref: Option<SecretKeySelector>,
@@ -28,4 +29,5 @@ impl CloudflareResource for Zone {
 pub struct ZoneStatus {
     pub ready: bool,
     pub id: Option<String>,
+    pub error: Option<String>,
 }

@@ -3,6 +3,7 @@ use std::sync::Arc;
 pub use cloudflare::endpoints::{
     account::{Account, GetAccount},
     dns::dns::{CreateDnsRecordParams, DnsContent},
+    users::TokenVerification,
     zones::zone::{CreateZone, CreateZoneParams, Zone, ZoneDetails},
 };
 
@@ -59,6 +60,10 @@ impl CloudflareClient {
 
     pub async fn list_account(&self) -> Result<Vec<Account>> {
         Ok(self.client.request(&ListAccounts { params: None }).await?.result)
+    }
+
+    pub async fn token_verify(&self) -> Result<String> {
+        Ok(self.client.request(&TokenVerification {}).await?.result.id)
     }
 }
 

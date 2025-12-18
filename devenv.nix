@@ -6,7 +6,15 @@
 {
   packages = with pkgs; [
     git
+    k9s
+    tilt
+    just
     lldb
+    docker
+    colima
+    kubectl
+    kubectx
+    kubernetes-helm
     vscode-extensions.vadimcn.vscode-lldb
   ];
 
