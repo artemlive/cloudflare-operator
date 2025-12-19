@@ -48,7 +48,7 @@ prometheus-client = "0.24.0"
 async-recursion = "1.1.1"
 
 [patch.crates-io]
-cloudflare = { git = "ssh://git@github.com/anasinnyk/cloudflare-rs.git" }
+cloudflare = { git = "ssh://git@github.com/anasinnyk/cloudflare-rs.git", branch="master" }
 
 [dev-dependencies]
 assert-json-diff = "2.0.2"

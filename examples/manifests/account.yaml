@@ -1,0 +1,11 @@
+apiVersion: cloudflare.com/v1alpha1
+kind: Account
+metadata:
+  name: demo
+  namespace: default
+spec:
+  id: <account_id>
+  secretRef:
+    name: cloudflare
+    key: token
+

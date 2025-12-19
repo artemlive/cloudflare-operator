@@ -1,0 +1,8 @@
+apiVersion: cloudflare.com/v1alpha1
+kind: Zone
+metadata:
+  name: zone.example.com
+  namespace: default
+spec:
+  accountRef:
+    name: demo

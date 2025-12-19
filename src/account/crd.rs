@@ -9,7 +9,9 @@ use crate::cloudflare::CloudflareResource;
 #[cfg_attr(test, derive(Default))]
 #[kube(kind = "Account", group = "cloudflare.com", version = "v1alpha1", namespaced)]
 #[kube(status = "AccountStatus", shortname = "acc")]
+#[serde(rename_all = "camelCase")]
 pub struct AccountSpec {
+    pub id: String,
     pub secret_ref: Option<SecretKeySelector>,
 }
 
@@ -22,5 +24,6 @@ impl CloudflareResource for Account {
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 pub struct AccountStatus {
     pub ready: bool,
-    pub id: Option<String>,
+    pub token_id: Option<String>,
+    pub error: Option<String>,
 }

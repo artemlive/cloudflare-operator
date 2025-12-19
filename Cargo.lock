@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "cloudflare"
 version = "0.14.1"
-source = "git+ssh://git@github.com/anasinnyk/cloudflare-rs.git#28653cad52628e243a50582078c14c5d12075c8d"
+source = "git+ssh://git@github.com/anasinnyk/cloudflare-rs.git?branch=master#3c89655a487c6037bb2d1a2a97f6996cbdd9dc26"
 dependencies = [
  "chrono",
  "http 1.4.0",

@@ -38,6 +38,7 @@ compile features="":
   docker run --rm \
     -v cargo-cache:/root/.cargo \
     -v $PWD:/volume \
+    -e CARGO_NET_GIT_FETCH_WITH_CLI=true \
     -w /volume \
     -t clux/muslrust:stable \
     cargo build --release --features={{features}} --bin controller

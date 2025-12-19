@@ -1,55 +1,207 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: documents.kube.rs
+  name: dnsrecords.cloudflare.com
 spec:
-  group: kube.rs
+  group: cloudflare.com
   names:
     categories: []
-    kind: Document
-    plural: documents
+    kind: DNSRecord
+    plural: dnsrecords
     shortNames:
-    - doc
-    singular: document
+    - dns
+    singular: dnsrecord
   scope: Namespaced
   versions:
   - additionalPrinterColumns: []
-    name: v1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Auto-generated derived type for DocumentSpec via `CustomResource`
+        description: Auto-generated derived type for DNSRecordSpec via `CustomResource`
         properties:
           spec:
-            description: |-
-              Generate the Kubernetes wrapper struct `Document` from our Spec and Status struct
-
-              This provides a hook for generating the CRD yaml (in crdgen.rs)
-              NB: CustomResource generates a pub struct Document here
-              To query for documents.kube.rs with kube, use Api<Document>.
             properties:
               content:
                 type: string
-              hide:
-                type: boolean
-              title:
+              name:
                 type: string
+              priority:
+                format: uint16
+                maximum: 65535.0
+                minimum: 0.0
+                nullable: true
+                type: integer
+              proxied:
+                nullable: true
+                type: boolean
+              record_type:
+                type: string
+              ttl:
+                format: uint32
+                minimum: 0.0
+                nullable: true
+                type: integer
+              zone_ref:
+                description: LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
+                properties:
+                  name:
+                    description: 'Name of the referent. This field is effectively required, but due to backwards compatibility is allowed to be empty. Instances of this type with an empty value here are almost certainly wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                required:
+                - name
+                type: object
             required:
             - content
-            - hide
-            - title
+            - name
+            - record_type
+            - zone_ref
             type: object
           status:
-            description: The status object of `Document`
             nullable: true
             properties:
-              hidden:
+              ready:
                 type: boolean
+              record_id:
+                nullable: true
+                type: string
             required:
-            - hidden
+            - ready
             type: object
         required:
         - spec
-        title: Document
+        title: DNSRecord
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: accounts.cloudflare.com
+spec:
+  group: cloudflare.com
+  names:
+    categories: []
+    kind: Account
+    plural: accounts
+    shortNames:
+    - acc
+    singular: account
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for AccountSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              secretRef:
+                description: SecretKeySelector selects a key of a Secret.
+                nullable: true
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a valid secret key.
+                    type: string
+                  name:
+                    description: 'Name of the referent. This field is effectively required, but due to backwards compatibility is allowed to be empty. Instances of this type with an empty value here are almost certainly wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                - name
+                type: object
+            type: object
+          status:
+            nullable: true
+            properties:
+              id:
+                nullable: true
+                type: string
+              ready:
+                type: boolean
+            required:
+            - ready
+            type: object
+        required:
+        - spec
+        title: Account
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: zones.cloudflare.com
+spec:
+  group: cloudflare.com
+  names:
+    categories: []
+    kind: Zone
+    plural: zones
+    shortNames:
+    - zone
+    singular: zone
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for ZoneSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              accountRef:
+                description: LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
+                nullable: true
+                properties:
+                  name:
+                    description: 'Name of the referent. This field is effectively required, but due to backwards compatibility is allowed to be empty. Instances of this type with an empty value here are almost certainly wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                required:
+                - name
+                type: object
+              secretRef:
+                description: SecretKeySelector selects a key of a Secret.
+                nullable: true
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a valid secret key.
+                    type: string
+                  name:
+                    description: 'Name of the referent. This field is effectively required, but due to backwards compatibility is allowed to be empty. Instances of this type with an empty value here are almost certainly wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                - name
+                type: object
+            type: object
+          status:
+            nullable: true
+            properties:
+              id:
+                nullable: true
+                type: string
+              ready:
+                type: boolean
+            required:
+            - ready
+            type: object
+        required:
+        - spec
+        title: Zone
         type: object
     served: true
     storage: true

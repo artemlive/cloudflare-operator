@@ -64,34 +64,42 @@ impl Account {
         }
 
         let cf_client = ctx.provider.get_client(self, &ns).await.unwrap();
-        match cf_client.list_account().await {
-            Ok(accounts) => {
-                dbg!(&accounts);
-                for account in accounts {
-                    if account.name == name {
-                        docs.patch_status(
-                            &name,
-                            &PatchParams::apply("cntrlr").force(),
-                            &Patch::Apply(json!({
-                                "apiVersion": "cloudflare.com/v1alpha1",
-                                "kind": "Account",
-                                "status": AccountStatus {
-                                    ready: true,
-                                    id: Some(account.id),
-                                }
-                            })),
-                        )
-                        .await
-                        .map_err(Error::KubeError)?;
+        match cf_client.token_verify().await {
+            Ok(token_id) => {
+                docs.patch_status(
+                    &name,
+                    &PatchParams::apply("cntrlr").force(),
+                    &Patch::Apply(json!({
+                        "apiVersion": "cloudflare.com/v1alpha1",
+                        "kind": "Account",
+                        "status": AccountStatus {
+                            ready: true,
+                            token_id: Some(token_id),
+                            error: None,
+                        }
+                    })),
+                )
+                .await
+                .map_err(Error::KubeError)?;
 
-                        return Ok(Action::requeue(Duration::from_secs(5 * 60)));
-                    }
-                }
-                eprintln!("Account {} not found with this token", name);
-                return Ok(Action::requeue(Duration::from_secs(60)));
+                return Ok(Action::requeue(Duration::from_secs(5 * 60)));
             }
             Err(e) => {
-                eprintln!("Error happend: {}", e);
+                docs.patch_status(
+                    &name,
+                    &PatchParams::apply("cntrlr").force(),
+                    &Patch::Apply(json!({
+                        "apiVersion": "cloudflare.com/v1alpha1",
+                        "kind": "Account",
+                        "status": AccountStatus {
+                            ready: false,
+                            token_id: None,
+                            error: Some(e.to_string()),
+                        }
+                    })),
+                )
+                .await
+                .map_err(Error::KubeError)?;
                 return Ok(Action::requeue(Duration::from_secs(60)));
             }
         }
